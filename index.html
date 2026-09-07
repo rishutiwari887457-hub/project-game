@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="A modern, beginner-friendly interactive Hangman Game built with Python logic and a rich neon cyberpunk web frontend.">
+  <title>Hangman Challenge | Modern Web Edition</title>
+  
+  <!-- Google Fonts: Outfit & JetBrains Mono -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;800&family=Outfit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <!-- Background Glow Orbs -->
+  <div class="bg-orb orb-1"></div>
+  <div class="bg-orb orb-2"></div>
+
+  <!-- Confetti Canvas for Win Celebrations -->
+  <canvas id="confetti-canvas"></canvas>
+
+  <div class="app-container">
+    <!-- Top Header -->
+    <header class="game-header">
+      <div class="brand">
+        <span class="badge">PYTHON EDITION</span>
+        <h1 class="title">HANGMAN</h1>
+        <p class="subtitle">Decode the secret word one letter at a time</p>
+      </div>
+
+      <!-- Controls & Quick Stats -->
+      <div class="header-actions">
+        <button id="sound-btn" class="icon-btn" title="Toggle Sound" aria-label="Toggle Sound">
+          <svg id="sound-icon" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon>
+            <path d="M15.54 8.46a5 5 0 0 1 0 7.07"></path>
+            <path d="M19.07 4.93a10 10 0 0 1 0 14.14"></path>
+          </svg>
+        </button>
+
+        <button id="mode-btn" class="pill-btn" title="Toggle Word Bank">
+          <span class="pill-indicator"></span>
+          <span id="mode-label">Core 5 Words</span>
+        </button>
+
+        <button id="restart-btn" class="icon-btn restart-action" title="New Game" aria-label="New Game">
+          <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="23 4 23 10 17 10"></polyline>
+            <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"></path>
+          </svg>
+        </button>
+      </div>
+    </header>
+
+    <!-- Main Game Board -->
+    <main class="game-board">
+      <!-- Left Column: Visual Stage & Lives Counter -->
+      <section class="stage-section" aria-label="Hangman Gallows Stage">
+        <!-- Status Pill: Remaining Guesses -->
+        <div class="status-bar">
+          <div class="status-label">Remaining Attempts</div>
+          <div class="hearts-container" id="hearts-container">
+            <!-- 6 Lives Indicator Pods -->
+            <span class="heart active" data-index="1"></span>
+            <span class="heart active" data-index="2"></span>
+            <span class="heart active" data-index="3"></span>
+            <span class="heart active" data-index="4"></span>
+            <span class="heart active" data-index="5"></span>
+            <span class="heart active" data-index="6"></span>
+          </div>
+          <div class="attempts-numeric" id="attempts-numeric">6 / 6 left</div>
+        </div>
+
+        <!-- SVG Hangman Illustration -->
+        <div class="svg-stage-wrapper">
+          <svg id="hangman-svg" viewBox="0 0 260 280" class="hangman-svg">
+            <defs>
+              <linearGradient id="scaffold-grad" x1="0%" y1="0%" x2="100%" y2="100%">
+                <stop offset="0%" stop-color="#38bdf8" />
+                <stop offset="100%" stop-color="#818cf8" />
+              </linearGradient>
+              <linearGradient id="rope-grad" x1="0%" y1="0%" x2="0%" y2="100%">
+                <stop offset="0%" stop-color="#f59e0b" />
+                <stop offset="100%" stop-color="#ef4444" />
+              </linearGradient>
+              <linearGradient id="body-grad" x1="0%" y1="0%" x2="100%" y2="100%">
+                <stop offset="0%" stop-color="#f43f5e" />
+                <stop offset="100%" stop-color="#ec4899" />
+              </linearGradient>
+              <filter id="neon-glow" x="-20%" y="-20%" width="140%" height="140%">
+                <feGaussianBlur stdDeviation="3" result="blur" />
+                <feMerge>
+                  <feMergeNode in="blur" />
+                  <feMergeNode in="SourceGraphic" />
+                </feMerge>
+              </filter>
+            </defs>
+
+            <!-- Permanent Scaffold Elements -->
+            <!-- Base Ground Platform -->
+            <path d="M 30 250 L 190 250" class="scaffold-base" />
+            <!-- Vertical Post -->
+            <path d="M 70 250 L 70 40" class="scaffold-post" />
+            <!-- Top Crossbar -->
+            <path d="M 66 40 L 170 40" class="scaffold-beam" />
+            <!-- Angle Support Brace -->
+            <path d="M 70 80 L 110 40" class="scaffold-brace" />
+            <!-- Hanging Rope -->
+            <line x1="170" y1="40" x2="170" y2="75" class="scaffold-rope" />
+
+            <!-- The 6 Hangman Parts (Hidden by default, progressively revealed) -->
+            <!-- 1. Head -->
+            <circle id="part-head" cx="170" cy="95" r="20" class="body-part part-hidden" />
+            <!-- Dead/Hurt Eyes in Head -->
+            <g id="part-face" class="part-hidden">
+              <path d="M 162 90 L 166 94 M 166 90 L 162 94" class="face-eye" />
+              <path d="M 174 90 L 178 94 M 178 90 L 174 94" class="face-eye" />
+              <path d="M 166 104 Q 170 100 174 104" class="face-mouth" />
+            </g>
+            <!-- 2. Spine/Torso -->
+            <line id="part-torso" x1="170" y1="115" x2="170" y2="175" class="body-part part-hidden" />
+            <!-- 3. Left Arm -->
+            <line id="part-left-arm" x1="170" y1="130" x2="140" y2="155" class="body-part part-hidden" />
+            <!-- 4. Right Arm -->
+            <line id="part-right-arm" x1="170" y1="130" x2="200" y2="155" class="body-part part-hidden" />
+            <!-- 5. Left Leg -->
+            <line id="part-left-leg" x1="170" y1="175" x2="145" y2="220" class="body-part part-hidden" />
+            <!-- 6. Right Leg -->
+            <line id="part-right-leg" x1="170" y1="175" x2="195" y2="220" class="body-part part-hidden" />
+          </svg>
+        </div>
+      </section>
+
+      <!-- Right Column: Interactive Word & Keyboard Play Area -->
+      <section class="interaction-section" aria-label="Game Play and Guessing Area">
+        <!-- Notification Message Toast -->
+        <div id="toast-banner" class="toast-banner" role="status" aria-live="polite">
+          <span class="toast-icon">💡</span>
+          <span id="toast-text">Click letters below or press keys on your keyboard.</span>
+        </div>
+
+        <!-- Secret Word Slots Display -->
+        <div class="word-card">
+          <div class="word-header">
+            <span class="word-badge" id="category-badge">WORD TO GUESS</span>
+            <span class="word-length-badge" id="word-length-badge">6 letters</span>
+          </div>
+          <div class="word-slots" id="word-slots" aria-label="Secret Word Slots">
+            <!-- Dynamic letter tiles inserted here via JS -->
+          </div>
+        </div>
+
+        <!-- Virtual Interactive QWERTY Keyboard -->
+        <div class="keyboard-container" id="keyboard-container" aria-label="On-Screen Keyboard">
+          <!-- Keyboard rows rendered dynamically by JS -->
+        </div>
+
+        <!-- Scoreboard Stats -->
+        <div class="stats-bar">
+          <div class="stat-item">
+            <span class="stat-num" id="stat-wins">0</span>
+            <span class="stat-label">Wins</span>
+          </div>
+          <div class="stat-item">
+            <span class="stat-num" id="stat-losses">0</span>
+            <span class="stat-label">Losses</span>
+          </div>
+          <div class="stat-item">
+            <span class="stat-num" id="stat-streak">0</span>
+            <span class="stat-label">Current Streak</span>
+          </div>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <!-- End Game Overlay Modal -->
+  <div id="game-modal" class="modal-overlay hidden" role="dialog" aria-modal="true">
+    <div class="modal-card">
+      <div class="modal-icon" id="modal-icon">🎉</div>
+      <h2 class="modal-title" id="modal-title">You Win!</h2>
+      <p class="modal-message" id="modal-message">Outstanding job! You cracked the word.</p>
+      
+      <div class="modal-word-reveal">
+        <span class="modal-reveal-label">The word was:</span>
+        <span class="modal-revealed-word" id="modal-revealed-word">PYTHON</span>
+      </div>
+
+      <div class="modal-actions">
+        <button id="modal-play-again-btn" class="primary-btn">
+          Play Again
+          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="5" y1="12" x2="19" y2="12"></line>
+            <polyline points="12 5 19 12 12 19"></polyline>
+          </svg>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>
